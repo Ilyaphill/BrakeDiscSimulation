@@ -8,4 +8,8 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Include="C:\Users\USER\Desktop\Uni\5. Semester\Systemsimulation aka Digital Twin, SIM5\Project\Calculations.cs" Link="Calculations.cs" />
+  </ItemGroup>
+
 </Project>
