@@ -8,7 +8,7 @@ namespace BrakeDiscSimulation
 {
     internal class Calculations
     {
-        private DiscParameter Disc;
+        public DiscParameter Disc;
         public Calculations()
         {
             InitParameters();
@@ -38,6 +38,10 @@ namespace BrakeDiscSimulation
             for (double i = 0; i <= t; i += dt)
             {
                 double v = v0 - a * i;
+                if (v == 0)
+                {
+
+                }
                 double deltaE = Disc.M / 2 * (Math.Pow(v0, 2) - Math.Pow(v, 2));
                 List_deltaE.Add(deltaE);
             }
@@ -52,27 +56,54 @@ namespace BrakeDiscSimulation
             {
 
                 double s = v0 * i - a * i;
-                brakingDistance.Add(s);
+
+                if (s >= Math.Pow(v0, 2) / (2 * a))
+                {
+                    brakingDistance.Add(Math.Pow(v0, 2) / (2 * a));
+                }
+                else
+                {
+                    brakingDistance.Add(s);
+                }
             }
 
             return brakingDistance;
         }
 
-        // Функция расчета нагрева тормозного диска
-        public double CalculateHeating(double speed, double deceleration)
+        private List<double> Make_dt_List(double dt, double t)
         {
-            List<double> deltaE = Calculate_deltaE(3.5, 0.1, speed / 3.6, deceleration);
-            List<double> breakingDistance = Calculate_Distance(3.5, 0.1, speed / 3.6, deceleration);
+            List<double> dt_List = new List<double>();
+            for (double i = 0; i <= t; i += dt)
+            {
+                dt_List.Add(i);
+            }
+            return dt_List;
+        }
+        // Функция расчета нагрева тормозного диска
+        public Tuple<List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(double dt, double t, double speed, double deceleration)
+        {
+            List<double> deltaE = Calculate_deltaE(t, dt, speed / 3.6, deceleration);
+            List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
+            List<double> dt_List = Make_dt_List(dt, t);
 
-            double workDone = Disc.M * deceleration * breakingDistance[breakingDistance.Count - 1] ; // Работа, выполненная тормозами (Дж)
-             
+            List<double> temperatureChanges = new List<double>();
+            List<double> totalEnergy = new List<double>();
+            List<double> time_dt = new List<double>();
+
+            //double workDone = Disc.M * deceleration * breakingDistance[breakingDistance.Count - 1] ; // Работа, выполненная тормозами (Дж)
+            for (int i = 0; i < dt_List.Count; i++)
+            {
+                
+                double workDone = Disc.M * deceleration * breakingDistance[i]; // Работа, выполненная тормозами (Дж)
+                double Energy_OnePeriod = deltaE[i] + workDone; // Энергия, преобразованная в тепло (с учетом КПД)
+                double deltaT = Disc.KPD * Energy_OnePeriod / (Disc.Meff * Disc.Cmetal); // Температура диска после торможения
+
+                totalEnergy.Add(Energy_OnePeriod);
+                temperatureChanges.Add(deltaT);
+            }
             // Энергия, преобразованная в тепло (с учетом КПД)
-            double totalEnergy = deltaE[deltaE.Count - 1] + workDone;
-
-            // Расчет изменения температуры (в градусах Цельсия)
-            double deltaT = Disc.KPD * totalEnergy / (Disc.Meff * Disc.Cmetal); // Температура диска после торможения
-
-            return deltaT; // Возвращаем рассчитанный нагрев (изменение температуры)
+            //double totalEnergy = deltaE[deltaE.Count - 1] + workDone;
+            return Tuple.Create(temperatureChanges, totalEnergy, breakingDistance, dt_List);
         }
     }
 }

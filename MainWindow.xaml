@@ -4,28 +4,62 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BrakeDiscSimulation"
+        xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         mc:Ignorable="d"
         Title="Brake Disc Simulation" Height="450" Width="800">
-    <Viewbox Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <Grid>
-            <!-- Ползунок для выбора начальной скорости -->
-            <Slider x:Name="SpeedSlider" Minimum="50" Maximum="200" Value="100" Width="200" Height="25" Margin="10,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-            <Label Content="Скорость (км/ч)" Margin="220,10,0,0" VerticalAlignment="Top"/>
-            <TextBlock x:Name="SpeedValue" Text="100" Margin="320,10,0,0" VerticalAlignment="Top"/>
+    <TabControl>
+        <!-- Вкладка с основной симуляцией -->
+        <TabItem Header="Симуляция">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="46*"/>
+                    <ColumnDefinition Width="351*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-            <!-- Ползунок для выбора замедления -->
-            <Slider x:Name="DecelerationSlider" Minimum="1" Maximum="10" Value="5" Width="200" Height="25" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-            <Label Content="Замедление (м/с²)" Margin="220,50,0,0" VerticalAlignment="Top"/>
-            <TextBlock x:Name="DecelerationValue" Text="5" Margin="330,50,0,0" VerticalAlignment="Top"/>
+                <!-- Элементы управления -->
+                <Viewbox Grid.Row="0" Stretch="Uniform" Grid.ColumnSpan="2" Margin="0,0,0,0" Grid.RowSpan="2">
+                    <Grid Height="237">
+                        <Slider x:Name="SpeedSlider" Minimum="50" Maximum="200" Value="100" Width="200" Height="25" Margin="10,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Label Content="Скорость (км/ч)" Margin="220,10,0,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="SpeedValue" Text="100" Margin="320,10,0,0" VerticalAlignment="Top"/>
 
-            <!-- Кнопка старта симуляции -->
-            <Button Content="Старт" Width="100" Height="30" Margin="10,90,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="StartSimulation_Click"/>
+                        <Slider x:Name="DecelerationSlider" Minimum="1" Maximum="10" Value="5" Width="200" Height="25" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Label Content="Замедление (м/с²)" Margin="220,50,0,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="DecelerationValue" Text="5" Margin="330,50,0,0" VerticalAlignment="Top"/>
 
-            <!-- Визуализация тормозного диска -->
-            <Ellipse x:Name="Disc" Width="100" Height="100" Fill="Gray" Margin="400,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Button Content="Старт" Width="100" Height="30" Margin="10,175,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="StartSimulation_Click"/>
 
-            <!-- Элемент для отображения температуры тормозного диска -->
-            <TextBlock x:Name="TemperatureValue" Text="Температура: 0 °C" Margin="10,150,0,0" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Left"/>
-        </Grid>
-    </Viewbox>
+                        <Ellipse x:Name="Disc" Width="100" Height="100" Fill="Gray" Margin="373,95,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+
+                        <TextBlock x:Name="TemperatureValue" Text="Температура: 0 °C" Margin="358,206,0,0" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                        <TextBox HorizontalAlignment="Left" Height="0" Margin="20,134,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="2"/>
+                        <TextBox x:Name="Time_TextBox" HorizontalAlignment="Left" Margin="10,80,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+                        <TextBox x:Name="dt_TextBox" HorizontalAlignment="Left" Margin="10,111,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+                        <Label Content="time" HorizontalAlignment="Left" Margin="135,77,0,0" VerticalAlignment="Top" Height="27" Width="50"/>
+                        <Label Content="dt" HorizontalAlignment="Left" Margin="135,0,0,0" VerticalAlignment="Center" Height="27" Width="50" RenderTransformOrigin="0.495,1.766"/>
+                    </Grid>
+                </Viewbox>
+
+            </Grid>
+        </TabItem>
+
+        <!-- Вторая вкладка -->
+        <TabItem Header="Дополнительные настройки">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18*"/>
+                    <ColumnDefinition Width="379*"/>
+                </Grid.ColumnDefinitions>
+                <!-- ScottPlot в отдельной строке -->
+                <ScottPlot:WpfPlot x:Name="PlotDist" Margin="430,125,10,10" Grid.Column="1" />
+                <!-- ScottPlot в отдельной строке -->
+                <ScottPlot:WpfPlot x:Name="PlotTemp" Margin="10,125,430,10" Grid.ColumnSpan="2" />
+
+            </Grid>
+        </TabItem>
+    </TabControl>
 </Window>

@@ -9,7 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="C:\Users\USER\Desktop\Uni\5. Semester\Systemsimulation aka Digital Twin, SIM5\Project\Calculations.cs" Link="Calculations.cs" />
+    <PackageReference Include="ScottPlot.WPF" Version="5.0.54" />
   </ItemGroup>
+
+
 
 </Project>
