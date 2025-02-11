@@ -83,14 +83,13 @@ namespace BrakeDiscSimulation
         public Tuple<List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(double dt, double t, double speed, double deceleration)
         {
             List<double> deltaE = Calculate_deltaE(t, dt, speed / 3.6, deceleration);
-            List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
+            List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration); //ToDo починить энергию
             List<double> dt_List = Make_dt_List(dt, t);
 
             List<double> temperatureChanges = new List<double>();
             List<double> totalEnergy = new List<double>();
             List<double> time_dt = new List<double>();
 
-            //double workDone = Disc.M * deceleration * breakingDistance[breakingDistance.Count - 1] ; // Работа, выполненная тормозами (Дж)
             for (int i = 0; i < dt_List.Count; i++)
             {
                 
