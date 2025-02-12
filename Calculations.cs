@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ScottPlot.Colormaps;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,7 +20,7 @@ namespace BrakeDiscSimulation
             // Параметры системы
             Disc.M = 1500;
             Disc.KPD = 0.7;
-            Disc.Cmetal = 490;
+            Disc.Cmetal = 490; // thermal heat capacity
             Disc.Rho = 7800;
             Disc.D = 0.3;
             Disc.W = 0.05;
@@ -31,31 +32,42 @@ namespace BrakeDiscSimulation
 
         }
 
-        private List<double> Calculate_deltaE(double t, double dt, double v0, double a)
+        private Tuple<List<double>, List<double>> Calculate_deltaE_speed(double t, double dt, double v0, double a)
         {
-            List<double> List_deltaE = new List<double>();
+            List<double> speed = new List<double>();
+            List<double> energyLog = new List<double>();
+            double totalEnergy = 0.0;
 
-            for (double i = 0; i <= t; i += dt)
+            for (double currentTime = 0; currentTime <= t; currentTime += dt)
             {
-                double v = v0 - a * i;
-                if (v == 0)
+                if (v0 > 0.0)
                 {
+                    double vNext = v0 - a * currentTime;
+                    if (vNext < 0)
+                    {
+                        vNext = 0; 
+                    }
 
+                    double deltaE = 0.5 * Disc.M * (Math.Pow(v0, 2) - Math.Pow(vNext, 2));
+                    totalEnergy += deltaE;
+                    energyLog.Add(totalEnergy);
+                    speed.Add(vNext);
                 }
-                double deltaE = Disc.M / 2 * (Math.Pow(v0, 2) - Math.Pow(v, 2));
-                List_deltaE.Add(deltaE);
+
             }
 
-            return List_deltaE;
+            return Tuple.Create(energyLog, speed);
 
         }
         private List<double> Calculate_Distance(double t, double dt, double v0, double a)
         {
             List<double> brakingDistance = new List<double>();
+            double s0 = 0;
             for (double i = 0; i <= t; i += dt)
             {
 
-                double s = v0 * i - a * i;
+                double s = 0.5 * a * Math.Pow(dt,2) + v0 * dt + s0;
+                s0 = s;
 
                 if (s >= Math.Pow(v0, 2) / (2 * a))
                 {
@@ -82,8 +94,10 @@ namespace BrakeDiscSimulation
         // Функция расчета нагрева тормозного диска
         public Tuple<List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(double dt, double t, double speed, double deceleration)
         {
-            List<double> deltaE = Calculate_deltaE(t, dt, speed / 3.6, deceleration);
-            List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration); //ToDo починить энергию
+            var deltaE_speed = Calculate_deltaE_speed(t, dt, speed / 3.6, deceleration);
+            List<double> deltaE = deltaE_speed.Item1;
+            List<double> speed_perPeriods = deltaE_speed.Item2;
+            List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
             List<double> dt_List = Make_dt_List(dt, t);
 
             List<double> temperatureChanges = new List<double>();
@@ -93,11 +107,11 @@ namespace BrakeDiscSimulation
             for (int i = 0; i < dt_List.Count; i++)
             {
                 
-                double workDone = Disc.M * deceleration * breakingDistance[i]; // Работа, выполненная тормозами (Дж)
-                double Energy_OnePeriod = deltaE[i] + workDone; // Энергия, преобразованная в тепло (с учетом КПД)
+                double workDone = Disc.M * deceleration * speed_perPeriods[i]; // Работа, выполненная тормозами (Дж)
+                double Energy_OnePeriod = deltaE[i] + workDone; 
                 double deltaT = Disc.KPD * Energy_OnePeriod / (Disc.Meff * Disc.Cmetal); // Температура диска после торможения
 
-                totalEnergy.Add(Energy_OnePeriod);
+                totalEnergy.Add(Energy_OnePeriod / 1000); // in kJ
                 temperatureChanges.Add(deltaT);
             }
             // Энергия, преобразованная в тепло (с учетом КПД)
