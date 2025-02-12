@@ -9,8 +9,7 @@ namespace BrakeDiscSimulation
     {
         // ToDo сделать wait опциональным, добавить это в xaml
         // ToDo добавить стоп
-        // ToDo подсчет энергии и температуры неправильный
-        // ToDo нужно сделать так, чтобы была строчка выбора графика вместо всех
+        // ToDo нужно сделать так, чтобы была строчка выбора графика вместо всех -> подравить его, чтобы график всегда был именно по элементу 
         // ToDo Implizit and Explizit => сделать + должны быть выборычными
 
         List<double> temperature;
@@ -45,25 +44,17 @@ namespace BrakeDiscSimulation
 
             if (!correctValues)
             {
-                PlotDist.Plot.Clear();
-                PlotTemp.Plot.Clear();
+                PlotResult.Plot.Clear();
 
                 List<double> xValues = new List<double>();
-                List<double> yValuesTemp = new List<double>();
-                List<double> yValuesDist = new List<double>();
-                List<double> yValuesEnergy = new List<double>();
-
-                var scatterDist = PlotDist.Plot.Add.Scatter(xValues.ToArray(), yValuesDist.ToArray());
-                var scatterTemp = PlotTemp.Plot.Add.Scatter(xValues.ToArray(), yValuesTemp.ToArray());
-                var scatterEnergy = PlotTotalEnergy.Plot.Add.Scatter(xValues.ToArray(),yValuesEnergy.ToArray());
-
+                List<double> yValues = new List<double>();
 
                 double.TryParse(dt_TextBox.Text, out var dt);
                 double.TryParse(Time_TextBox.Text, out var time);
-                double speed = SpeedSlider.Value; // Получаем значение начальной скорости
-                double deceleration = DecelerationSlider.Value; // Получаем значение замедления
+                double speed = SpeedSlider.Value; 
+                double deceleration = DecelerationSlider.Value; 
 
-                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration); // Рассчитываем нагрев
+                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration); 
                 temperature = result.Item1;
                 totalenergy = result.Item2;
                 breakingDistance = result.Item3;
@@ -77,42 +68,50 @@ namespace BrakeDiscSimulation
                     TemperatureValue.Text = $"Temperature Difference: {temperature[i]:F1} °C";
                     UpdateDiscColor(temperature[i]);
 
+                    if (ComboBox.SelectedItem is ComboBoxItem selecteditem)
+                    {
+                        string content = selecteditem.Content.ToString();
 
+                        switch (content)
+                        {
+                            case "Temperature":
+                                yValues.Add(temperature[i]);
+
+                                PlotResult.Plot.Title("Temperature over Time");
+                                PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
+                                break;
+
+                            case "Energy":
+                                yValues.Add(totalenergy[i]);
+
+                                PlotResult.Plot.Title("Energy over Time");
+                                PlotResult.Plot.Axes.Left.Label.Text = "Energy used (kJ)";
+                                break;
+
+                            case "Distance":
+                                yValues.Add(breakingDistance[i]);
+
+                                PlotResult.Plot.Title("Distance over Time");
+                                PlotResult.Plot.Axes.Left.Label.Text = "Distance (m)";
+                                break;
+
+                            default:
+                                yValues.Add(temperature[i]);
+
+                                PlotResult.Plot.Title("Temperature over Time");
+                                PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
+                                break;
+                        }
+                    }
                     xValues.Add(dt_time_List[i]);
-                    yValuesTemp.Add(temperature[i]);
-                    yValuesDist.Add(breakingDistance[i]);
-                    yValuesEnergy.Add(totalenergy[i]);
 
-                    PlotDist.Plot.Clear();
-                    PlotTemp.Plot.Clear();
-                    PlotTotalEnergy.Plot.Clear();
+                    PlotResult.Plot.Clear();
+                    PlotResult.Plot.Add.Scatter(xValues.ToArray(), yValues.ToArray());
+                    PlotResult.Plot.Axes.AutoScale();
+                    PlotResult.Plot.Axes.Bottom.Label.Text = "Time (s)";
+                    PlotResult.Plot.Legend.IsVisible = true;
+                    PlotResult.Refresh();
 
-                    PlotDist.Plot.Add.Scatter(xValues.ToArray(), yValuesDist.ToArray());
-                    PlotTemp.Plot.Add.Scatter(xValues.ToArray(), yValuesTemp.ToArray());
-                    PlotTotalEnergy.Plot.Add.Scatter(xValues.ToArray(), yValuesEnergy.ToArray());
-
-                    PlotDist.Plot.Axes.AutoScale();
-                    PlotTemp.Plot.Axes.AutoScale();
-                    PlotTotalEnergy.Plot.Axes.AutoScale();
-
-                    PlotDist.Plot.Title("Distance over Time");
-                    PlotDist.Plot.Axes.Bottom.Label.Text = "Time (s)";
-                    PlotDist.Plot.Axes.Left.Label.Text = "Distance (m)";
-                    PlotDist.Plot.Legend.IsVisible = true;
-
-                    PlotTemp.Plot.Title("Temperature over Time");
-                    PlotTemp.Plot.Axes.Bottom.Label.Text = "Time (s)";
-                    PlotTemp.Plot.Axes.Left.Label.Text = "Temperature (°C)";
-                    PlotTemp.Plot.Legend.IsVisible = true;
-
-                    PlotTotalEnergy.Plot.Title("Energy over Time");
-                    PlotTotalEnergy.Plot.Axes.Bottom.Label.Text = "Time (s)";
-                    PlotTotalEnergy.Plot.Axes.Left.Label.Text = "Energy used (kJ)";
-                    PlotTotalEnergy.Plot.Legend.IsVisible = true;
-
-                    PlotDist.Refresh();
-                    PlotTemp.Refresh();
-                    PlotTotalEnergy.Refresh();
                 }
 
             }
@@ -147,7 +146,7 @@ namespace BrakeDiscSimulation
                 textBox_dt.BorderBrush = Brushes.Red;
                 textBox_dt.Background = new SolidColorBrush(Color.FromRgb(255, 230, 230));
                 textBox_dt.Text = "dt must be less or equal to time!";
-                textBox_dt.Foreground = Brushes.Gray; // Серый текст
+                textBox_dt.Foreground = Brushes.Gray; 
                 textBox_dt.FontStyle = FontStyles.Italic;
                 return true;
             }

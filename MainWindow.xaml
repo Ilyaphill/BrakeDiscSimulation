@@ -37,7 +37,7 @@
                         <TextBox HorizontalAlignment="Left" Height="0" Margin="20,134,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="2"/>
                         <TextBox x:Name="Time_TextBox" HorizontalAlignment="Left" Margin="10,80,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120"/>
                         <TextBox x:Name="dt_TextBox" HorizontalAlignment="Left" Margin="10,111,0,0" TextWrapping="Wrap" Text="0,1" VerticalAlignment="Top" Width="120"/>
-                        <Label Content="time" HorizontalAlignment="Left" Margin="135,77,0,0" VerticalAlignment="Top" Height="27" Width="50"/>
+                        <Label Content="time for simulatiom" HorizontalAlignment="Left" Margin="135,75,0,0" VerticalAlignment="Top" Height="28" Width="120"/>
                         <Label Content="dt" HorizontalAlignment="Left" Margin="135,0,0,0" VerticalAlignment="Center" Height="27" Width="50" RenderTransformOrigin="0.495,1.766"/>
                     </Grid>
                 </Viewbox>
@@ -47,33 +47,14 @@
 
         <TabItem Header="Diagramms">
             <Grid>
-                <!-- Две строки: верхняя повыше, нижняя пониже -->
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="1*"/>
-                    <!-- верхняя: 2 части -->
-                    <RowDefinition Height="1*"/>
-                    <!-- нижняя: 1 часть -->
-                </Grid.RowDefinitions>
 
-                <!-- Две колонки: левая и правая -->
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <!-- Верхний левый график (PlotDist) -->
-                <ScottPlot:WpfPlot x:Name="PlotDist"
-                           Grid.Row="0" Grid.Column="0"
-                           Margin="10" />
+                <ScottPlot:WpfPlot x:Name="PlotResult" HorizontalAlignment="Center" VerticalAlignment="Center" Width="500" Height="400"/>
 
-                <!-- Верхний правый график (PlotTemp) -->
-                <ScottPlot:WpfPlot x:Name="PlotTemp"
-                           Grid.Row="0" Grid.Column="1"
-                           Margin="10" />
-
-                <!-- Нижний левый график (PlotTotalEnergy) -->
-                <ScottPlot:WpfPlot x:Name="PlotTotalEnergy"
-                           Grid.Row="1" Grid.Column="0"
-                           Margin="10" />
+                <ComboBox x:Name="ComboBox" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="120">
+                    <ComboBoxItem Content="Temperature"/>
+                    <ComboBoxItem Content="Energy"/>
+                    <ComboBoxItem Content="Distance"/>
+                </ComboBox>
 
             </Grid>
         </TabItem>

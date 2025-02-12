@@ -19,7 +19,7 @@ namespace BrakeDiscSimulation
             Disc = new DiscParameter();
             // Параметры системы
             Disc.M = 1500;
-            Disc.KPD = 0.7;
+            Disc.KPD = 0.85; // какая часть энергии уходит в диск, а не в воздух или т.п.
             Disc.Cmetal = 490; // thermal heat capacity
             Disc.Rho = 7800;
             Disc.D = 0.3;
@@ -50,7 +50,7 @@ namespace BrakeDiscSimulation
 
                     double deltaE = 0.5 * Disc.M * (Math.Pow(v0, 2) - Math.Pow(vNext, 2));
                     totalEnergy += deltaE;
-                    energyLog.Add(totalEnergy);
+                    energyLog.Add(deltaE);
                     speed.Add(vNext);
                 }
 
@@ -91,7 +91,7 @@ namespace BrakeDiscSimulation
             }
             return dt_List;
         }
-        // Функция расчета нагрева тормозного диска
+
         public Tuple<List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(double dt, double t, double speed, double deceleration)
         {
             var deltaE_speed = Calculate_deltaE_speed(t, dt, speed / 3.6, deceleration);
@@ -106,16 +106,12 @@ namespace BrakeDiscSimulation
 
             for (int i = 0; i < dt_List.Count; i++)
             {
-                
-                double workDone = Disc.M * deceleration * speed_perPeriods[i]; // Работа, выполненная тормозами (Дж)
-                double Energy_OnePeriod = deltaE[i] + workDone; 
-                double deltaT = Disc.KPD * Energy_OnePeriod / (Disc.Meff * Disc.Cmetal); // Температура диска после торможения
+                double deltaT = Disc.KPD * deltaE[i] / (Disc.Meff * Disc.Cmetal); 
 
-                totalEnergy.Add(Energy_OnePeriod / 1000); // in kJ
+                totalEnergy.Add(deltaE[i] / 1000); // in kJ
                 temperatureChanges.Add(deltaT);
             }
-            // Энергия, преобразованная в тепло (с учетом КПД)
-            //double totalEnergy = deltaE[deltaE.Count - 1] + workDone;
+
             return Tuple.Create(temperatureChanges, totalEnergy, breakingDistance, dt_List);
         }
     }
