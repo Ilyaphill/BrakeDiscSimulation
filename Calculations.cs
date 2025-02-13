@@ -36,7 +36,6 @@ namespace BrakeDiscSimulation
         {
             List<double> speed = new List<double>();
             List<double> energyLog = new List<double>();
-            double totalEnergy = 0.0;
 
             for (double currentTime = 0; currentTime <= t; currentTime += dt)
             {
@@ -49,7 +48,6 @@ namespace BrakeDiscSimulation
                     }
 
                     double deltaE = 0.5 * Disc.M * (Math.Pow(v0, 2) - Math.Pow(vNext, 2));
-                    totalEnergy += deltaE;
                     energyLog.Add(deltaE);
                     speed.Add(vNext);
                 }
@@ -92,7 +90,8 @@ namespace BrakeDiscSimulation
             return dt_List;
         }
 
-        public Tuple<List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(double dt, double t, double speed, double deceleration)
+        public Tuple<List<double>, List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(
+        double dt, double t, double speed, double deceleration)
         {
             var deltaE_speed = Calculate_deltaE_speed(t, dt, speed / 3.6, deceleration);
             List<double> deltaE = deltaE_speed.Item1;
@@ -100,19 +99,46 @@ namespace BrakeDiscSimulation
             List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
             List<double> dt_List = Make_dt_List(dt, t);
 
-            List<double> temperatureChanges = new List<double>();
+            List<double> temperatureChanges_implicit = new List<double>();
+            List<double> temperatureChanges_analytical = new List<double>();
+
             List<double> totalEnergy = new List<double>();
-            List<double> time_dt = new List<double>();
+            List<double> Q_in = new List<double>();
+
+            double Tcurrent_implicit = 0; 
+            double Tcurrent_analytical = 0;
 
             for (int i = 0; i < dt_List.Count; i++)
             {
-                double deltaT = Disc.KPD * deltaE[i] / (Disc.Meff * Disc.Cmetal); 
-
-                totalEnergy.Add(deltaE[i] / 1000); // in kJ
-                temperatureChanges.Add(deltaT);
+                Q_in.Add(Disc.KPD * deltaE[i]);
             }
 
-            return Tuple.Create(temperatureChanges, totalEnergy, breakingDistance, dt_List);
+
+            for (int i = 0; i < dt_List.Count; i++)
+            {
+                Tcurrent_analytical = (Q_in[i] / (Disc.Meff * Disc.Cmetal));
+
+
+
+                if (i == 0)
+                {
+                    Tcurrent_implicit = Tcurrent_analytical;
+                }
+                else if (i < dt_List.Count - 1 && i != 0)
+                {
+                    Tcurrent_implicit = (Tcurrent_implicit + dt * (Q_in[i + 1] / (Disc.Meff * Disc.Cmetal))) / (0.9995 + dt); // very strongly smoothed
+                }
+                else
+                {
+                    Tcurrent_implicit = Tcurrent_analytical;
+                }
+
+                temperatureChanges_implicit.Add(Tcurrent_implicit);
+                temperatureChanges_analytical.Add(Tcurrent_analytical);
+                totalEnergy.Add(deltaE[i] / 1000); // в kJ
+            }
+
+            return Tuple.Create(temperatureChanges_implicit, temperatureChanges_analytical, totalEnergy, breakingDistance, dt_List);
         }
     }
 }

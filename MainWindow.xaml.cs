@@ -9,13 +9,13 @@ namespace BrakeDiscSimulation
     {
         // ToDo сделать wait опциональным, добавить это в xaml
         // ToDo добавить стоп
-        // ToDo нужно сделать так, чтобы была строчка выбора графика вместо всех -> подравить его, чтобы график всегда был именно по элементу 
-        // ToDo Implizit and Explizit => сделать + должны быть выборычными
 
-        List<double> temperature;
+        List<double> temperature_analytical;
         List<double> totalenergy;
         List<double> breakingDistance;
         List<double> dt_time_List;
+
+        List<double> temperature_imlicit;
 
         private Calculations calculations;
         public MainWindow()
@@ -26,6 +26,7 @@ namespace BrakeDiscSimulation
 
             SpeedSlider.ValueChanged += SpeedSlider_ValueChanged;
             DecelerationSlider.ValueChanged += DecelerationSlider_ValueChanged;
+            ComboBox.SelectionChanged += SelectionChanged;
         }
 
         private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -48,74 +49,103 @@ namespace BrakeDiscSimulation
 
                 List<double> xValues = new List<double>();
                 List<double> yValues = new List<double>();
+                List<double> buffer_temperature_analytical = new List<double>();
+                List<double> buffer_temperature_implicit = new List<double>();
+                List<double> buffer_distance = new List<double>();
+                List<double> buffer_energy = new List<double>();
 
                 double.TryParse(dt_TextBox.Text, out var dt);
                 double.TryParse(Time_TextBox.Text, out var time);
                 double speed = SpeedSlider.Value; 
                 double deceleration = DecelerationSlider.Value; 
 
-                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration); 
-                temperature = result.Item1;
-                totalenergy = result.Item2;
-                breakingDistance = result.Item3;
-                dt_time_List = result.Item4;
+                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration); //ImplicitEuler ExplicitEuler Analytical
+                temperature_analytical = result.Item2;
+                temperature_imlicit = result.Item1;
+                totalenergy = result.Item3;
+                breakingDistance = result.Item4;
+                dt_time_List = result.Item5;
 
                 for (int i = 0; i < dt_time_List.Count; i++)
                 {
                     double wait = 1000 * dt;
                     int waitInt = (int)Math.Round(wait); 
                     await Task.Delay(waitInt);
-                    TemperatureValue.Text = $"Temperature Difference: {temperature[i]:F1} °C";
-                    UpdateDiscColor(temperature[i]);
+                    TemperatureValue.Text = $"Temperature Difference: {temperature_analytical[i]:F1} °C";
+                    UpdateDiscColor(temperature_analytical[i]);
+
+                    buffer_distance.Add(breakingDistance[i]);
+                    buffer_energy.Add(totalenergy[i]);
+                    buffer_temperature_analytical.Add(temperature_analytical[i]);
+                    buffer_temperature_implicit.Add(temperature_imlicit[i]);
 
                     if (ComboBox.SelectedItem is ComboBoxItem selecteditem)
                     {
                         string content = selecteditem.Content.ToString();
+                        xValues.Add(dt_time_List[i]);
 
                         switch (content)
                         {
                             case "Temperature":
-                                yValues.Add(temperature[i]);
+                                // Если выбрана температура, добавляем оба метода
+                                var line1 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_analytical.ToArray());
+                                //line1.Label = "Analytical";
+                                line1.Color = ScottPlot.Colors.Blue;
+
+                                var line2 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_implicit.ToArray());
+                                //line2.Label = "Implicit Euler";
+                                line2.Color = ScottPlot.Colors.Red;
 
                                 PlotResult.Plot.Title("Temperature over Time");
                                 PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
                                 break;
 
                             case "Energy":
-                                yValues.Add(totalenergy[i]);
+                                // Если выбрана энергия, рисуем только энергию
+                                var energyLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_energy.ToArray());
+                                energyLine.Label = "Energy";
 
                                 PlotResult.Plot.Title("Energy over Time");
-                                PlotResult.Plot.Axes.Left.Label.Text = "Energy used (kJ)";
+                                PlotResult.Plot.Axes.Left.Label.Text = "Energy (kJ)";
                                 break;
 
                             case "Distance":
-                                yValues.Add(breakingDistance[i]);
+                                // Если выбрана дистанция, рисуем только дистанцию
+                                var distanceLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_distance.ToArray());
+                                distanceLine.Label = "Distance";
 
                                 PlotResult.Plot.Title("Distance over Time");
                                 PlotResult.Plot.Axes.Left.Label.Text = "Distance (m)";
                                 break;
 
                             default:
-                                yValues.Add(temperature[i]);
+                                // По умолчанию - тоже температура
+                                var defaultLine1 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_analytical.ToArray());
+                                //defaultLine1.Label = "Analytical";
+                                defaultLine1.Color = ScottPlot.Colors.Blue;
+
+                                var defaultLine2 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_implicit.ToArray());
+                                //defaultLine2.Label = "Implicit Euler";
+                                defaultLine2.Color = ScottPlot.Colors.Red;
 
                                 PlotResult.Plot.Title("Temperature over Time");
                                 PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
                                 break;
                         }
                     }
-                    xValues.Add(dt_time_List[i]);
-
-                    PlotResult.Plot.Clear();
-                    PlotResult.Plot.Add.Scatter(xValues.ToArray(), yValues.ToArray());
                     PlotResult.Plot.Axes.AutoScale();
-                    PlotResult.Plot.Axes.Bottom.Label.Text = "Time (s)";
-                    PlotResult.Plot.Legend.IsVisible = true;
                     PlotResult.Refresh();
 
                 }
 
             }
 
+        }
+
+        private void SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Вызываем наш метод отрисовки
+            PlotSelectedData();
         }
 
         private bool ValidateTextBoxInput(TextBox textBox_dt, TextBox textBox_time)
@@ -158,6 +188,51 @@ namespace BrakeDiscSimulation
                 textBox_time.FontStyle = FontStyles.Normal;
                 return false;
             }
+        }
+
+        private void PlotSelectedData()
+        {
+            // 1) Проверяем, что у нас есть данные
+            if (temperature_analytical == null || totalenergy == null || breakingDistance == null || dt_time_List == null)
+                return; // нет данных
+
+            // 2) Смотрим, что выбрано в ComboBox
+            //    Если ничего не выбрано, пусть будет "Temperature" по умолчанию
+            string selectedText = "Temperature";
+            if (ComboBox.SelectedItem is ComboBoxItem selectedItem)
+                selectedText = selectedItem.Content.ToString();
+
+            // 3) Готовим массив X и массив Y
+            double[] xArray = dt_time_List.ToArray();
+            double[] yArray;
+
+            switch (selectedText)
+            {
+                case "Energy":
+                    yArray = totalenergy.ToArray();
+                    PlotResult.Plot.Title("Energy over Time");
+                    PlotResult.Plot.Axes.Left.Label.Text = "Energy (kJ)";
+                    break;
+
+                case "Distance":
+                    yArray = breakingDistance.ToArray();
+                    PlotResult.Plot.Title("Distance over Time");
+                    PlotResult.Plot.Axes.Left.Label.Text = "Distance (m)";
+                    break;
+
+                default: // "Temperature"
+                    yArray = temperature_analytical.ToArray();
+                    PlotResult.Plot.Title("Temperature over Time");
+                    PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
+                    break;
+            }
+
+            // 4) Строим график
+            PlotResult.Plot.Clear();
+            PlotResult.Plot.Add.Scatter(xArray, yArray);
+            PlotResult.Plot.Axes.Bottom.Label.Text = "Time (s)";
+            PlotResult.Plot.Axes.AutoScale();
+            PlotResult.Refresh();
         }
 
         private void UpdateDiscColor(double heating)
