@@ -9,7 +9,7 @@ namespace BrakeDiscSimulation
     internal class DiscParameter
     {
         public double M { get; set; } // Масса автомобиля (кг)
-        public double KPD { get; set; } // Коэффициент преобразования энергии в тепло
+        public double COP { get; set; } // Коэффициент преобразования энергии в тепло
         public double Cmetal { get; set; } // Удельная теплоемкость металла тормозного диска
         public double Rho { get; set; } // Плотность материала тормозного диска (сталь)
         public double D { get; set; } // Диаметр тормозного диска (м)

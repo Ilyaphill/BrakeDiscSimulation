@@ -21,24 +21,29 @@
 
                 <Viewbox Grid.Row="0" Stretch="Uniform" Grid.ColumnSpan="2" Margin="0,0,0,0" Grid.RowSpan="2">
                     <Grid Height="237">
-                        <Slider x:Name="SpeedSlider" Minimum="50" Maximum="200" Value="100" Width="200" Height="25" Margin="10,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                        <Label Content="Initial speed (km/h)" Margin="220,10,0,0" VerticalAlignment="Top"/>
-                        <TextBlock x:Name="SpeedValue" Text="100" Margin="343,15,-23,0" VerticalAlignment="Top"/>
+                        <Slider x:Name="SpeedSlider" Minimum="50" Maximum="200" Value="100" Width="120" Height="26" Margin="10,10,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Label Content="Initial speed (km/h)" Margin="135,10,85,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="SpeedValue" Text="100" Margin="252,15,68,0" VerticalAlignment="Top"/>
 
-                        <Slider x:Name="DecelerationSlider" Minimum="1" Maximum="10" Value="5" Width="200" Height="25" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                        <Label Content="Deceleration (m/s²)" Margin="220,50,0,0" VerticalAlignment="Top"/>
-                        <TextBlock x:Name="DecelerationValue" Text="5" Margin="343,55,-13,0" VerticalAlignment="Top"/>
+                        <Slider x:Name="DecelerationSlider" Minimum="1" Maximum="10" Value="5" Width="120" Height="26" Margin="10,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Label Content="Deceleration (m/s²)" Margin="138,45,82,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="DecelerationValue" Text="5" Margin="257,50,73,0" VerticalAlignment="Top"/>
 
-                        <Button Content="Start" Width="100" Height="30" Margin="10,190,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="StartSimulation_Click"/>
+                        <Button Content="Start" Width="83" Height="24" Margin="10,203,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="StartSimulation_Click"/>
 
-                        <Ellipse x:Name="Disc" Width="100" Height="100" Fill="Gray" Margin="320,94,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                        <Ellipse x:Name="Disc" Width="100" Height="100" Fill="Gray" Margin="389,41,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"/>
 
-                        <TextBlock x:Name="TemperatureValue" Text="Temperature Difference: 0 °C" Margin="216,199,0,0" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                        <TextBlock x:Name="TemperatureValue" Text="Temperature Difference: 0 °C" Margin="138,203,0,0" VerticalAlignment="Top" HorizontalAlignment="Left"/>
                         <TextBox HorizontalAlignment="Left" Height="0" Margin="20,134,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="2"/>
                         <TextBox x:Name="Time_TextBox" HorizontalAlignment="Left" Margin="10,80,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120"/>
                         <TextBox x:Name="dt_TextBox" HorizontalAlignment="Left" Margin="10,111,0,0" TextWrapping="Wrap" Text="0,1" VerticalAlignment="Top" Width="120"/>
-                        <Label Content="time for simulatiom" HorizontalAlignment="Left" Margin="135,75,0,0" VerticalAlignment="Top" Height="28" Width="120"/>
+                        <Label Content="Time for simulatiom" HorizontalAlignment="Left" Margin="135,75,0,0" VerticalAlignment="Top" Height="28" Width="120"/>
                         <Label Content="dt" HorizontalAlignment="Left" Margin="135,0,0,0" VerticalAlignment="Center" Height="27" Width="50" RenderTransformOrigin="0.495,1.766"/>
+                        <TextBox x:Name="mass_car_TextBox" HorizontalAlignment="Left" Margin="10,139,0,0" TextWrapping="Wrap" Text="1500" VerticalAlignment="Top" Height="18" Width="120"/>
+                        <TextBox x:Name="thermal_capacity_TextBox" HorizontalAlignment="Left" Margin="10,167,0,0" TextWrapping="Wrap" Text="490" VerticalAlignment="Top" Height="18" Width="120"/>
+                        <Label Content="Thermal Capacity&#xD;&#xA;Most realistic values between 420 and 600" HorizontalAlignment="Center" Margin="0,155,0,0" VerticalAlignment="Top"/>
+                        <Label Content="Mass of the car" HorizontalAlignment="Left" Margin="135,135,0,0" VerticalAlignment="Top"/>
+                        <Label Content="Visual representation of disk heating" HorizontalAlignment="Left" Margin="296,10,0,0" VerticalAlignment="Top"/>
                     </Grid>
                 </Viewbox>
 
@@ -55,6 +60,7 @@
                     <ComboBoxItem Content="Energy"/>
                     <ComboBoxItem Content="Distance"/>
                 </ComboBox>
+                <Label Content="Blue -&gt; Analytical solving&#xA;Red -&gt; Euler Implicit &#xD;&#xA;with strong smoothening" HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top" FontSize="10"/>
 
             </Grid>
         </TabItem>

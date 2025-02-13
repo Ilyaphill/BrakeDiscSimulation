@@ -1,15 +1,8 @@
-﻿using ScottPlot.Colormaps;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BrakeDiscSimulation
+﻿namespace BrakeDiscSimulation
 {
     internal class Calculations
     {
-        public DiscParameter Disc;
+        private DiscParameter Disc;
         public Calculations()
         {
             InitParameters();
@@ -17,18 +10,16 @@ namespace BrakeDiscSimulation
         private void InitParameters()
         {
             Disc = new DiscParameter();
-            // Параметры системы
-            Disc.M = 1500;
-            Disc.KPD = 0.85; // какая часть энергии уходит в диск, а не в воздух или т.п.
-            Disc.Cmetal = 490; // thermal heat capacity
+            
+            Disc.COP = 0.85; // Coefficent of produktivity - shows, how much of the energy while braking goes into the disc
             Disc.Rho = 7800;
             Disc.D = 0.3;
             Disc.W = 0.05;
             Disc.Tlayer = 0.006;
-            Disc.Acontact = Math.PI * Disc.D * Disc.W; // Площадь контактной зоны (м²)
-            Disc.Vlayer = Disc.Acontact * Disc.Tlayer; // Объем слоя, который нагревается (м³)
-            Disc.Mlayer = Disc.Rho * Disc.Vlayer; // Масса нагреваемого слоя одного тормозного диска (кг)
-            Disc.Meff = 4 * Disc.Mlayer; // Эффективная масса всех частей тормоза, участвующих в нагреве
+            Disc.Acontact = Math.PI * Disc.D * Disc.W; 
+            Disc.Vlayer = Disc.Acontact * Disc.Tlayer; // Volume of the disc's layer
+            Disc.Mlayer = Disc.Rho * Disc.Vlayer; // Mass of this layer
+            Disc.Meff = 4 * Disc.Mlayer; // Effective mass of discs, which participate in braking 
 
         }
 
@@ -91,12 +82,15 @@ namespace BrakeDiscSimulation
         }
 
         public Tuple<List<double>, List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(
-        double dt, double t, double speed, double deceleration)
+        double dt, double t, double speed, double deceleration, double car_mass, double heat_capacity)
         {
+            Disc.M = car_mass;
+            Disc.Cmetal = heat_capacity; // thermal heat capacity
+
             var deltaE_speed = Calculate_deltaE_speed(t, dt, speed / 3.6, deceleration);
             List<double> deltaE = deltaE_speed.Item1;
             List<double> speed_perPeriods = deltaE_speed.Item2;
-            List<double> breakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
+            List<double> brakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
             List<double> dt_List = Make_dt_List(dt, t);
 
             List<double> temperatureChanges_implicit = new List<double>();
@@ -110,7 +104,7 @@ namespace BrakeDiscSimulation
 
             for (int i = 0; i < dt_List.Count; i++)
             {
-                Q_in.Add(Disc.KPD * deltaE[i]);
+                Q_in.Add(Disc.COP * deltaE[i]);
             }
 
 
@@ -135,10 +129,10 @@ namespace BrakeDiscSimulation
 
                 temperatureChanges_implicit.Add(Tcurrent_implicit);
                 temperatureChanges_analytical.Add(Tcurrent_analytical);
-                totalEnergy.Add(deltaE[i] / 1000); // в kJ
+                totalEnergy.Add(deltaE[i] / 1000); // in kJ
             }
 
-            return Tuple.Create(temperatureChanges_implicit, temperatureChanges_analytical, totalEnergy, breakingDistance, dt_List);
+            return Tuple.Create(temperatureChanges_implicit, temperatureChanges_analytical, totalEnergy, brakingDistance, dt_List);
         }
     }
 }
