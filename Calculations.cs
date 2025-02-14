@@ -48,24 +48,24 @@
             return Tuple.Create(energyLog, speed);
 
         }
+
         private List<double> Calculate_Distance(double t, double dt, double v0, double a)
         {
             List<double> brakingDistance = new List<double>();
-            double s0 = 0;
+            double s_last = 0;
+
             for (double i = 0; i <= t; i += dt)
             {
-
-                double s = 0.5 * a * Math.Pow(dt,2) + v0 * dt + s0;
-                s0 = s;
-
-                if (s >= Math.Pow(v0, 2) / (2 * a))
+                double v = v0 - a * i;
+                if (v <= 0) 
                 {
-                    brakingDistance.Add(Math.Pow(v0, 2) / (2 * a));
+                    brakingDistance.Add(s_last);
+                    continue; 
                 }
-                else
-                {
-                    brakingDistance.Add(s);
-                }
+
+                double s = v0 * i - 0.5 * a * Math.Pow(i, 2); 
+                s_last = s; 
+                brakingDistance.Add(s);
             }
 
             return brakingDistance;
@@ -81,7 +81,7 @@
             return dt_List;
         }
 
-        public Tuple<List<double>, List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(
+        public Tuple<List<double>, List<double>, List<double>, List<double>, List<double>, List<double>> CalculateHeating_ReturnEverything(
         double dt, double t, double speed, double deceleration, double car_mass, double heat_capacity)
         {
             Disc.M = car_mass;
@@ -89,7 +89,7 @@
 
             var deltaE_speed = Calculate_deltaE_speed(t, dt, speed / 3.6, deceleration);
             List<double> deltaE = deltaE_speed.Item1;
-            List<double> speed_perPeriods = deltaE_speed.Item2;
+            List<double> speed_every_Period = deltaE_speed.Item2;
             List<double> brakingDistance = Calculate_Distance(t, dt, speed / 3.6, deceleration);
             List<double> dt_List = Make_dt_List(dt, t);
 
@@ -132,7 +132,8 @@
                 totalEnergy.Add(deltaE[i] / 1000); // in kJ
             }
 
-            return Tuple.Create(temperatureChanges_implicit, temperatureChanges_analytical, totalEnergy, brakingDistance, dt_List);
+            return Tuple.Create(temperatureChanges_implicit, temperatureChanges_analytical, totalEnergy, brakingDistance, dt_List, speed_every_Period);
         }
+
     }
 }

@@ -7,17 +7,16 @@ namespace BrakeDiscSimulation
 {
     public partial class MainWindow : Window
     {
-        // ToDo сделать wait опциональным, добавить это в xaml
-        // ToDo добавить скорость
-
         List<double> temperature_analytical;
         List<double> totalenergy;
         List<double> breakingDistance;
         List<double> dt_time_List;
         List<double> temperature_implicit;
+        List<double> speed_per_Period;
 
         private Calculations calculations;
-        
+        private CancellationTokenSource cts;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -26,9 +25,10 @@ namespace BrakeDiscSimulation
             SpeedSlider.ValueChanged += SpeedSlider_ValueChanged;
             DecelerationSlider.ValueChanged += DecelerationSlider_ValueChanged;
             ComboBox.SelectionChanged += SelectionChanged;
+
         }
 
-        #region Sliders and list for diagramms
+        #region Sliders, buttons and list for diagramms
 
         private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -44,14 +44,34 @@ namespace BrakeDiscSimulation
         {
             PlotSelectedData_AfterSimulation();
         }
-        
-        #endregion
+
+        private void StopSimulation_Click(object sender, RoutedEventArgs e)
+        {
+            cts?.Cancel();
+        }
         
         private async void StartSimulation_Click(object sender, RoutedEventArgs e)
         {
             bool correctValues = ValidateTextBoxInput(dt_TextBox, Time_TextBox, mass_car_TextBox, thermal_capacity_TextBox);
 
             if (!correctValues)
+            {
+                cts?.Cancel();
+                cts = new CancellationTokenSource();
+                await RunSimulationAsync(cts.Token);
+            }
+
+        }
+
+        #endregion
+
+        private async Task RunSimulationAsync(CancellationToken token)
+        {
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+            else
             {
                 PlotResult.Plot.Clear();
 
@@ -62,90 +82,115 @@ namespace BrakeDiscSimulation
                 List<double> buffer_temperature_implicit = new List<double>();
                 List<double> buffer_distance = new List<double>();
                 List<double> buffer_energy = new List<double>();
+                List<double> buffer_speed_result = new List<double>();
 
                 double.TryParse(dt_TextBox.Text, out var dt);
                 double.TryParse(Time_TextBox.Text, out var time);
                 double.TryParse(mass_car_TextBox.Text, out var mass_car);
                 double.TryParse(thermal_capacity_TextBox.Text, out var thermal_capacity);
 
-                double speed = SpeedSlider.Value; 
-                double deceleration = DecelerationSlider.Value; 
+                double speed = SpeedSlider.Value;
+                double deceleration = DecelerationSlider.Value;
 
-                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration, mass_car, thermal_capacity); 
-                
-                temperature_analytical = result.Item2;
-                temperature_implicit = result.Item1;
-                totalenergy = result.Item3;
-                breakingDistance = result.Item4;
-                dt_time_List = result.Item5;
+                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration, mass_car, thermal_capacity);
 
-                for (int i = 0; i < dt_time_List.Count; i++)
+                temperature_analytical ??= new List<double>();
+                temperature_implicit ??= new List<double>();
+                totalenergy ??= new List<double>();
+                breakingDistance ??= new List<double>();
+                dt_time_List ??= new List<double>();
+                speed_per_Period ??= new List<double>();
+
+                temperature_analytical.Clear();
+                temperature_implicit.Clear();
+                totalenergy.Clear();
+                breakingDistance.Clear();
+                dt_time_List.Clear();
+                speed_per_Period.Clear();
+
+                for (int i = 0; i < result.Item5.Count; i++)
                 {
+
                     double wait = 1000 * dt;
-                    int waitInt = (int)Math.Round(wait); 
-                    await Task.Delay(waitInt);
-
-                    TemperatureValue.Text = $"Temperature Difference: {temperature_analytical[i]:F1} °C";
-                    UpdateDiscColor(temperature_analytical[i]);
-
-                    buffer_distance.Add(breakingDistance[i]);
-                    buffer_energy.Add(totalenergy[i]);
-                    buffer_temperature_analytical.Add(temperature_analytical[i]);
-                    buffer_temperature_implicit.Add(temperature_implicit[i]);
-
-                    if (ComboBox.SelectedItem is ComboBoxItem selecteditem)
+                    int waitInt = (int)Math.Round(wait);
+                    try
                     {
-                        string content = selecteditem.Content.ToString();
-
-                        xValues.Add(dt_time_List[i]);
-
-                        switch (content)
-                        {
-                            case "Temperature":
-                                var line1 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_analytical.ToArray());
-                                line1.Color = ScottPlot.Colors.Blue;
-
-                                var line2 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_implicit.ToArray());
-                                line2.Color = ScottPlot.Colors.Red;
-
-                                PlotResult.Plot.Title("Temperature over Time");
-                                PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
-                                break;
-
-                            case "Energy":
-                                var energyLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_energy.ToArray());
-
-                                PlotResult.Plot.Title("Energy over Time");
-                                PlotResult.Plot.Axes.Left.Label.Text = "Energy (kJ)";
-                                break;
-
-                            case "Distance":
-                                var distanceLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_distance.ToArray());
-
-                                PlotResult.Plot.Title("Distance over Time");
-                                PlotResult.Plot.Axes.Left.Label.Text = "Distance (m)";
-                                break;
-
-                            default:
-                                var defaultLine1 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_analytical.ToArray());
-                                defaultLine1.Color = ScottPlot.Colors.Blue;
-
-                                var defaultLine2 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_implicit.ToArray());
-                                defaultLine2.Color = ScottPlot.Colors.Red;
-
-                                PlotResult.Plot.Title("Temperature over Time");
-                                PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
-                                break;
-                        }
+                        await Task.Delay(waitInt, token); 
                     }
-                    PlotResult.Plot.Axes.Bottom.Label.Text = "Time (s)";
-                    PlotResult.Plot.Axes.AutoScale();
-                    PlotResult.Refresh();
+                    catch (TaskCanceledException)
+                    {
+                        return; 
+                    }
+                    temperature_analytical.Add(result.Item2[i]);
+                    temperature_implicit.Add(result.Item1[i]);
+                    totalenergy.Add(result.Item3[i]);
+                    breakingDistance.Add(result.Item4[i]);
+                    dt_time_List.Add(result.Item5[i]);
+                    speed_per_Period.Add(result.Item6[i]);
 
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        TemperatureValue.Text = $"Temperature Difference: {temperature_analytical[i]:F1} °C";
+                        UpdateDiscColor(temperature_analytical[i]);
+
+                        buffer_distance.Add(breakingDistance[i]);
+                        buffer_energy.Add(totalenergy[i]);
+                        buffer_temperature_analytical.Add(temperature_analytical[i]);
+                        buffer_temperature_implicit.Add(temperature_implicit[i]);
+                        buffer_speed_result.Add(speed_per_Period[i]);
+
+                        if (ComboBox.SelectedItem is ComboBoxItem selecteditem)
+                        {
+                            string content = selecteditem.Content.ToString();
+                            xValues.Add(dt_time_List[i]);
+
+                            PlotResult.Plot.Clear();
+
+                            switch (content)
+                            {
+                                case "Temperature":
+                                    var line1 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_analytical.ToArray());
+                                    line1.Color = ScottPlot.Colors.Blue;
+                                    line1.Label = "Analytical";
+
+                                    var line2 = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_temperature_implicit.ToArray());
+                                    line2.Color = ScottPlot.Colors.Red;
+                                    line2.Label = "Implicit Euler";
+
+                                    PlotResult.Plot.Title("Temperature over Time");
+                                    PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
+                                    break;
+
+                                case "Energy":
+                                    var energyLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_energy.ToArray());
+
+                                    PlotResult.Plot.Title("Energy over Time");
+                                    PlotResult.Plot.Axes.Left.Label.Text = "Energy (kJ)";
+                                    break;
+
+                                case "Distance":
+                                    var distanceLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_distance.ToArray());
+
+                                    PlotResult.Plot.Title("Distance over Time");
+                                    PlotResult.Plot.Axes.Left.Label.Text = "Distance (m)";
+                                    break;
+                                case "Speed":
+                                    var speedLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_speed_result.ToArray());
+
+                                    PlotResult.Plot.Title("Speed over Time");
+                                    PlotResult.Plot.Axes.Left.Label.Text = "Speed (m/s)";
+                                    break;
+
+                            }
+                            PlotResult.Plot.Axes.Bottom.Label.Text = "Time (s)";
+                            PlotResult.Plot.Axes.AutoScale();
+
+                            PlotResult.Refresh();
+                        }
+                    });
                 }
-
+            
             }
-
         }
 
         private bool ValidateTextBoxInput(TextBox textBox_dt, TextBox textBox_time, TextBox textBox_car_mass, TextBox textBox_heat_capacity)
@@ -240,6 +285,12 @@ namespace BrakeDiscSimulation
                     PlotResult.Plot.Axes.Left.Label.Text = "Distance (m)";
                     PlotResult.Plot.Add.Scatter(xArray, yArray);
                     break;
+                case "Speed":
+                    yArray = speed_per_Period.ToArray();
+                    PlotResult.Plot.Title("Speed over Time");
+                    PlotResult.Plot.Axes.Left.Label.Text = "Speed (m/s)";
+                    PlotResult.Plot.Add.Scatter(xArray, yArray);
+                    break;
 
                 default: // "Temperature"
                     yArray = temperature_analytical.ToArray();
@@ -248,9 +299,11 @@ namespace BrakeDiscSimulation
                     
                     var line1 = PlotResult.Plot.Add.Scatter(xArray, temperature_analytical.ToArray());
                     line1.Color = ScottPlot.Colors.Blue;
+                    line1.Label = "Analytical";
 
                     var line2 = PlotResult.Plot.Add.Scatter(xArray, temperature_implicit.ToArray());
                     line2.Color = ScottPlot.Colors.Red;
+                    line2.Label = "Implicit Euler";
                     break;
             }
 
@@ -326,5 +379,6 @@ namespace BrakeDiscSimulation
 
             Disc.Fill = new SolidColorBrush(finalColor);
         }
+    
     }
 }
