@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace BrakeDiscSimulation
 {
@@ -13,6 +14,7 @@ namespace BrakeDiscSimulation
         List<double> dt_time_List;
         List<double> temperature_implicit;
         List<double> speed_per_Period;
+        List<double> padWear;
 
         private Calculations calculations;
         private CancellationTokenSource cts;
@@ -44,7 +46,6 @@ namespace BrakeDiscSimulation
         {
             PlotSelectedData_AfterSimulation();
         }
-
         private void StopSimulation_Click(object sender, RoutedEventArgs e)
         {
             cts?.Cancel();
@@ -52,7 +53,7 @@ namespace BrakeDiscSimulation
         
         private async void StartSimulation_Click(object sender, RoutedEventArgs e)
         {
-            bool correctValues = ValidateTextBoxInput(dt_TextBox, Time_TextBox, mass_car_TextBox, thermal_capacity_TextBox);
+            bool correctValues = ValidateTextBoxInput(dt_TextBox, Time_TextBox, mass_car_TextBox);
 
             if (!correctValues)
             {
@@ -64,6 +65,8 @@ namespace BrakeDiscSimulation
         }
 
         #endregion
+
+
 
         private async Task RunSimulationAsync(CancellationToken token)
         {
@@ -83,16 +86,17 @@ namespace BrakeDiscSimulation
                 List<double> buffer_distance = new List<double>();
                 List<double> buffer_energy = new List<double>();
                 List<double> buffer_speed_result = new List<double>();
+                List<double> buffer_padWear = new List<double>();
 
                 double.TryParse(dt_TextBox.Text, out var dt);
                 double.TryParse(Time_TextBox.Text, out var time);
                 double.TryParse(mass_car_TextBox.Text, out var mass_car);
-                double.TryParse(thermal_capacity_TextBox.Text, out var thermal_capacity);
 
                 double speed = SpeedSlider.Value;
                 double deceleration = DecelerationSlider.Value;
+                string material = Combobox_Material.Text;
 
-                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration, mass_car, thermal_capacity);
+                var result = calculations.CalculateHeating_ReturnEverything(dt, time, speed, deceleration, mass_car, material);
 
                 temperature_analytical ??= new List<double>();
                 temperature_implicit ??= new List<double>();
@@ -100,6 +104,7 @@ namespace BrakeDiscSimulation
                 breakingDistance ??= new List<double>();
                 dt_time_List ??= new List<double>();
                 speed_per_Period ??= new List<double>();
+                padWear ??= new List<double>();
 
                 temperature_analytical.Clear();
                 temperature_implicit.Clear();
@@ -107,6 +112,7 @@ namespace BrakeDiscSimulation
                 breakingDistance.Clear();
                 dt_time_List.Clear();
                 speed_per_Period.Clear();
+                padWear.Clear();
 
                 for (int i = 0; i < result.Item5.Count; i++)
                 {
@@ -127,6 +133,7 @@ namespace BrakeDiscSimulation
                     breakingDistance.Add(result.Item4[i]);
                     dt_time_List.Add(result.Item5[i]);
                     speed_per_Period.Add(result.Item6[i]);
+                    padWear.Add(result.Item7[i]);
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -138,6 +145,7 @@ namespace BrakeDiscSimulation
                         buffer_temperature_analytical.Add(temperature_analytical[i]);
                         buffer_temperature_implicit.Add(temperature_implicit[i]);
                         buffer_speed_result.Add(speed_per_Period[i]);
+                        buffer_padWear.Add(padWear[i]);
 
                         if (ComboBox.SelectedItem is ComboBoxItem selecteditem)
                         {
@@ -180,7 +188,12 @@ namespace BrakeDiscSimulation
                                     PlotResult.Plot.Title("Speed over Time");
                                     PlotResult.Plot.Axes.Left.Label.Text = "Speed (m/s)";
                                     break;
+                                case "Disc wear":
+                                    var wearLine = PlotResult.Plot.Add.Scatter(xValues.ToArray(), buffer_padWear.ToArray());
 
+                                    PlotResult.Plot.Title("Disc wear over Time");
+                                    PlotResult.Plot.Axes.Left.Label.Text = "delta Thickness (m)";
+                                    break;
                             }
                             PlotResult.Plot.Axes.Bottom.Label.Text = "Time (s)";
                             PlotResult.Plot.Axes.AutoScale();
@@ -193,12 +206,11 @@ namespace BrakeDiscSimulation
             }
         }
 
-        private bool ValidateTextBoxInput(TextBox textBox_dt, TextBox textBox_time, TextBox textBox_car_mass, TextBox textBox_heat_capacity)
+        private bool ValidateTextBoxInput(TextBox textBox_dt, TextBox textBox_time, TextBox textBox_car_mass)
         {
             double.TryParse(textBox_dt.Text, out var dt);
             double.TryParse(textBox_time.Text, out var time);
             double.TryParse(textBox_car_mass.Text, out var mass);
-            double.TryParse(textBox_heat_capacity.Text, out var heat);
 
             if (string.IsNullOrWhiteSpace(textBox_time.Text) || !double.TryParse(textBox_time.Text, out _))
             {
@@ -225,15 +237,6 @@ namespace BrakeDiscSimulation
                 textBox_car_mass.Text = "Enter a correct value!";
                 textBox_car_mass.Foreground = Brushes.Gray;
                 textBox_car_mass.FontStyle = FontStyles.Italic;
-                return true;
-            }
-            else if (string.IsNullOrWhiteSpace(textBox_heat_capacity.Text) || !double.TryParse(textBox_heat_capacity.Text, out _))
-            {
-                textBox_heat_capacity.BorderBrush = Brushes.Red;
-                textBox_heat_capacity.Background = new SolidColorBrush(Color.FromRgb(255, 230, 230));
-                textBox_heat_capacity.Text = "Enter a correct value!";
-                textBox_heat_capacity.Foreground = Brushes.Gray;
-                textBox_heat_capacity.FontStyle = FontStyles.Italic;
                 return true;
             }
             else if (dt > time)
@@ -291,8 +294,13 @@ namespace BrakeDiscSimulation
                     PlotResult.Plot.Axes.Left.Label.Text = "Speed (m/s)";
                     PlotResult.Plot.Add.Scatter(xArray, yArray);
                     break;
-
-                default: // "Temperature"
+                case "Disc wear":
+                    yArray = padWear.ToArray();
+                    PlotResult.Plot.Title("Disc wear over Time");
+                    PlotResult.Plot.Axes.Left.Label.Text = "delta Thickness (m)";
+                    PlotResult.Plot.Add.Scatter(xArray, yArray);
+                    break;
+                default: 
                     yArray = temperature_analytical.ToArray();
                     PlotResult.Plot.Title("Temperature over Time");
                     PlotResult.Plot.Axes.Left.Label.Text = "Temperature (°C)";
